@@ -24,6 +24,8 @@ class FeatureExtractor(object):
         self.K = K
         self.Kinv = np.linalg.inv(self.K)
   
+    def normalize(self, pt):
+        return np.dot(self.Kinv, add_ones(pt).T).T[:,0:2]
     def denormalize(self, pt):
         #print(self.Kinv)
         ret = np.dot(self.K,[pt[0],pt[1],1])
@@ -58,8 +60,8 @@ class FeatureExtractor(object):
             # Subtract to move to 0
             #ret[:, :, 0] -= img.shape[0]//2
             #ret[:, :, 1] -= img.shape[1]//2
-            ret[:, 0, :] = np.dot(self.Kinv, add_ones(ret[:,0,:]).T).T[:,0:2]
-            ret[:, 1, :] = np.dot(self.Kinv, add_ones(ret[:,1,:]).T).T[:,0:2]
+            ret[:, 0, :] = self.normalize(ret[:,0,:])
+            ret[:, 1, :] = self.normalize(ret[:,1,:])
             model, inliers = ransac((ret[:, 0], ret[:, 1]),
                                     FundamentalMatrixTransform,
                                     min_samples=8,
