@@ -11,7 +11,7 @@ W = 1920//2
 H = 1080//2
 #F = math.sqrt(2)/5.00688904e-3
 #F = math.sqrt(2)/3.84808079e-3
-F = 1
+F = 280
 K = np.array(([F,0,W//2],[0,F,H//2],[0,0,1]))
 orb = cv2.ORB_create()
 
@@ -23,8 +23,11 @@ def process_frame(img, frame):
 
     imgray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     #fe.extract(imgray)
-    print("Calculating keypoints")
-    matches = fe.extract(imgray)
+    #print("Calculating keypoints")
+    matches, pose = fe.extract(imgray, img) # here 
+    if pose is None:
+        return
+    print(pose)
     if matches is not None:
         for p1, p2 in matches:
             u1,v1 = fe.denormalize(p1)
