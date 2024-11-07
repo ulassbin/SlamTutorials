@@ -8,7 +8,7 @@ import math
 
 import g2o
 
-# Current time 2.30.15
+# Current time 3.57.07
 # Camera intrinsics
 W = 1920//2
 H = 1080//2
@@ -33,7 +33,7 @@ def process_frame(img, frame):
         for p1, p2 in matches:
             u1,v1 = denormalize(K, p1)
             u2,v2 = denormalize(K, p2)
-            cv2.circle(img, (u1,v1), color=(0,255,0), radius=1)
+            cv2.circle(img, (u1,v1), color=(0,255,0), radius=1g)
             cv2.line(img, (u1,v1), (u2,v2), (255,0,0), thickness=1)
     cv2.imshow("frame",img)
     if cv2.waitKey(5) & 0xFF == ord('q'):
