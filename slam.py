@@ -28,13 +28,12 @@ def process_frame(img, frame):
     if (len(frames) <= 1 ):
         return
     # else
-    matches = match(frames[-1], frames[-2])
-    if matches is not None:
-        for p1, p2 in matches:
-            u1,v1 = denormalize(K, p1)
-            u2,v2 = denormalize(K, p2)
-            cv2.circle(img, (u1,v1), color=(0,255,0), radius=1g)
-            cv2.line(img, (u1,v1), (u2,v2), (255,0,0), thickness=1)
+    ret, Rt = match(frames[-1], frames[-2])
+    for p1, p2 in ret:
+        u1,v1 = denormalize(K, p1)
+        u2,v2 = denormalize(K, p2)
+        cv2.circle(img, (u1,v1), color=(0,255,0), radius=1)
+        cv2.line(img, (u1,v1), (u2,v2), (255,0,0), thickness=1)
     cv2.imshow("frame",img)
     if cv2.waitKey(5) & 0xFF == ord('q'):
         cv2.destroyAllWindows()

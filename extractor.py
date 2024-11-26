@@ -11,32 +11,18 @@ from skimage.transform import AffineTransform
 def add_ones(x):
     return np.concatenate([x, np.ones((x.shape[0], 1))], axis=1)
 
-def extractRt(self, E):
-    W =  np.mat([[0,-1,0],[1,0,0],[0,0,1]], dtype=float)
-    u,w,vt = np.linalg.svd(E)
-    assert np.linalg.det(u) > 0
-    if np.linalg.det(vt) < 0:
-        vt *= -1
-    # Retrieve the 2 rotations # Change of naming notation ad 2.14
-    R = np.dot(np.dot(u,W),vt) # Get the standard rotation matrix
-    if np.sum(np.diag(R)) < 0: # If the standard rotation matrix is negative
-        R = np.dot(np.dot(u,W.T),vt) # Get the other rotation matrix
-    #print("Rotation:", R)
-    # Get the translation from essential matrix
-    t = u[:,2]
-    #print("Translation:", t)
-    #print("Vt:", vt)
-    pose = np.concatenate([R,t.reshape(3,1)], axis=1)
-    return pose
-
-def normalize(Kinv, pt): # converts pixel coordinates to euclidian coordinates
-    return np.dot(Kinv, add_ones(pt).T).T[:,0:2] 
-
-def denormalize(K, pt): # converts euclidian coordinates to pixel coordinates
-    ret = np.dot(K,[pt[0],pt[1],1])
-    ret /= ret[2] # Normalize by the z coordinate (when F != 1)
-    return (int(round(ret[0])), int(round(ret[1])))
-
+def extractRt(E):
+  W = np.mat([[0,-1,0],[1,0,0],[0,0,1]],dtype=float)
+  U,d,Vt = np.linalg.svd(E)
+  assert np.linalg.det(U) > 0
+  if np.linalg.det(Vt) < 0:
+    Vt *= -1.0
+  R = np.dot(np.dot(U, W), Vt)
+  if np.sum(R.diagonal()) < 0:
+    R = np.dot(np.dot(U, W.T), Vt)
+  t = U[:, 2]
+  Rt = np.concatenate([R,t.reshape(3,1)], axis=1)
+  return Rt
 
 def extract(img):
     orb = cv2.ORB_create(1000) # orb keypoint container
@@ -47,25 +33,14 @@ def extract(img):
     kps, des = orb.compute(img, kps) # computes the descriptors of the keypoints
     return np.array([(kp.pt[0], kp.pt[1]) for kp in kps]), des
 
+def normalize(Kinv, pt): # converts pixel coordinates to euclidian coordinates
+    return np.dot(Kinv, add_ones(pt).T).T[:,0:2] 
 
-def getPoseFromRet(ret, Kinv):
-    ret[:, 0, :] = normalize(Kinv, ret[:,0,:])
-    ret[:, 1, :] = normalize(Kinv, ret[:,1,:])
-    model, inliers = ransac((ret[:, 0], ret[:, 1]),
-                            EssentialMatrixTransform, # less parameters
-                            #FundamentalMatrixTransform, # More paremeters
-                            min_samples=8,
-                            residual_threshold=0.005,
-                            max_trials=100) # We will take this matrix and extract positions
-    #ignore outliers
+def denormalize(K, pt): # converts euclidian coordinates to pixel coordinates
+    ret = np.dot(K,[pt[0],pt[1],1])
+    ret /= ret[2] # Normalize by the z coordinate (when F != 1)
+    return (int(round(ret[0])), int(round(ret[1])))
 
-
-
-
-    ret = ret[inliers]
-    #print(model.params) 
-    Rt = extractRt(model.params)
-    return Rt
 
 def match(f1, f2):
     bf = cv2.BFMatcher(cv2.NORM_HAMMING)
@@ -88,10 +63,28 @@ def match(f1, f2):
     #    cv2.waitKey(1000)
     # filter
     #print("Ret length:", len(ret))
-    pose = None
+
     assert len(ret) >= 8
     ret = np.array(ret)
-    return ret
+    assert len(ret[:, 0]) == len(ret[:, 1])
+    assert len(ret[:, 0]) >= 8
+    # fit matrix
+    model, inliers = ransac((ret[:, 0], ret[:, 1]), # we have a random crash here, fix later
+                            EssentialMatrixTransform,
+                            #FundamentalMatrixTransform,
+                            min_samples=8,
+                            #residual_threshold=1,
+                            residual_threshold=0.005,
+                            max_trials=200)
+    print(sum(inliers), len(inliers))
+
+    # ignore outliers
+    ret = ret[inliers]
+    Rt = extractRt(model.params)
+
+    # return
+    return ret, Rt
+
 
 
 
